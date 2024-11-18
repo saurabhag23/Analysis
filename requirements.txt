@@ -1,0 +1,7 @@
+fastapi
+uvicorn
+httpx
+yfinance
+pandas
+python-dotenv
+langchain 
