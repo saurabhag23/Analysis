@@ -90,4 +90,3 @@ class FundamentalAnalysisAgent:
         )
         narrative = response['choices'][0]['message']['content'] if response['choices'] else "No narrative generated."
         return narrative
-
