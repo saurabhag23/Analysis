@@ -35,14 +35,14 @@ class FundamentalAnalysisAgent:
         # This function retrieves the latest non-NaN value or returns 0 if all are NaN
             return series.dropna().iloc[-1] if not series.dropna().empty else 0
 
-        net_income = income_statement.loc['Net Income Continuous Operations'].iloc[-1]
-        total_equity = balance_sheet.loc['Stockholders Equity'].iloc[-1]
-        total_current_assets = balance_sheet.loc['Current Assets'].iloc[-1]
-        total_current_liabilities = balance_sheet.loc['Current Liabilities'].iloc[-1]
-        total_liabilities = balance_sheet.loc['Total Liabilities Net Minority Interest'].iloc[-1]
-        total_assets = balance_sheet.loc['Total Assets'].iloc[-1]
-        operating_income = income_statement.loc['Operating Income'].iloc[-1]
-        total_revenue = income_statement.loc['Total Revenue'].iloc[-1]
+        net_income = get_latest_value(income_statement.loc['Net Income Continuous Operations'])
+        total_equity = get_latest_value(balance_sheet.loc['Stockholders Equity'])
+        total_current_assets = get_latest_value(balance_sheet.loc['Current Assets'])
+        total_current_liabilities = get_latest_value(balance_sheet.loc['Current Liabilities'])
+        total_liabilities = get_latest_value(balance_sheet.loc['Total Liabilities Net Minority Interest'])
+        total_assets = get_latest_value(balance_sheet.loc['Total Assets'])
+        operating_income = get_latest_value(income_statement.loc['Operating Income'])
+        total_revenue = get_latest_value(income_statement.loc['Total Revenue'])
 
 
         # Calculate financial ratios
@@ -50,7 +50,6 @@ class FundamentalAnalysisAgent:
         eps = net_income / income_statement.loc['Diluted Average Shares'].iloc[-1]
         current_ratio = total_current_assets / total_current_liabilities 
         debt_to_equity_ratio = total_liabilities / total_equity 
-        gross_profit_margin = (total_revenue - income_statement.loc['Cost Of Revenue'].iloc[-1]) / total_revenue 
         operating_margin = operating_income / total_revenue 
         roa = net_income / total_assets 
 
@@ -59,7 +58,6 @@ class FundamentalAnalysisAgent:
             "EPS": eps,
             "Current Ratio": current_ratio,
             "Debt to Equity Ratio": debt_to_equity_ratio,
-            "Gross Profit Margin": gross_profit_margin,
             "Operating Margin": operating_margin,
             "ROA": roa
         }
@@ -76,7 +74,6 @@ class FundamentalAnalysisAgent:
             f"- Earnings Per Share (EPS): ${financial_ratios['EPS']:.2f} shows the portion of a company's profit allocated to each outstanding share of common stock, highlighting profitability on a per-share basis.",
             f"- Current Ratio: {financial_ratios['Current Ratio']:.2f}, which measures the company's ability to pay off its short-term liabilities with its short-term assets. A ratio above 1 suggests good short-term financial health.",
             f"- Debt to Equity Ratio: {financial_ratios['Debt to Equity Ratio']:.2f} shows the proportion of equity and debt the company uses to finance its assets, a lower ratio suggests less risk.",
-            f"- Gross Profit Margin: {financial_ratios['Gross Profit Margin']:.2%} reflects the financial health of the company's core activities, indicating how efficiently it uses its resources.",
             f"- Operating Margin: {financial_ratios['Operating Margin']:.2%} demonstrates the percentage of revenue left after paying for variable production expenses, indicating the efficiency of the management.",
             f"- Return on Assets (ROA): {financial_ratios['ROA']:.2%} highlights how profitable a company is relative to its total assets, indicating how efficient management is at using its assets to generate earnings."
         ])
