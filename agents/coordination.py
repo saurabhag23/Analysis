@@ -18,6 +18,9 @@ class CoordinationAgent:
         :return: dict, the results of the analysis including data from various agents.
         """
         data_agent = DataRetrievalAgent(ticker)
+        
+        if analysis_type == 'overview':
+            return data_agent.get_overview_data()
         financial_data = data_agent.get_all_data()  # Fetch all relevant financial data
         
         results = {}

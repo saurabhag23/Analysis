@@ -9,6 +9,17 @@ class DataRetrievalAgent:
         """
         self.ticker = ticker
         self.stock = yf.Ticker(ticker)
+    
+    def get_overview_data(self):
+        """Fetch overview data for the stock."""
+        info = self.stock.info
+        return {
+            "price": info.get("regularMarketPrice"),
+            "market_cap": info.get("marketCap"),
+            "pe_ratio": info.get("trailingPE"),
+            "dividend_yield": info.get("dividendYield", 0) * 100,  # Convert to percentage
+            "52_week_range": f"{info.get('fiftyTwoWeekLow')} - {info.get('fiftyTwoWeekHigh')}"
+        }
 
     def get_historical_prices(self, period="max", interval="1d"):
         """

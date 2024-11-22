@@ -4,7 +4,7 @@ from agents.coordination import CoordinationAgent
 router = APIRouter()
 
 @router.get("/analyze/{ticker}")
-async def analyze_ticker(ticker: str, analysis_type: str = Query('both', enum=['fundamental', 'technical', 'both'])):
+async def analyze_ticker(ticker: str, analysis_type: str = Query('both', enum=['fundamental', 'technical', 'both','overview'])):
     """
     Endpoint to analyze a stock ticker with specified analysis type.
     :param ticker: str, the stock ticker symbol.
