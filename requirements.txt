@@ -4,4 +4,4 @@ httpx
 yfinance
 pandas
 python-dotenv
-langchain 
+langchain nb

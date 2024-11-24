@@ -1,82 +1,139 @@
-# agents/fundamental_analysis_agent.py
 import openai
+import pandas as pd
+import numpy as np
 from utils.config import OPENAI_API_KEY
 
 class FundamentalAnalysisAgent:
     def __init__(self):
-        """
-        Initializes the FundamentalAnalysisAgent with the necessary OpenAI API key.
-        """
         self.openai_api_key = OPENAI_API_KEY
 
-    def analyze_financials(self, financial_data,ticker):
-        """
-        Analyzes financial data to calculate key financial ratios and generate a narrative.
-        :param financial_data: dict, comprehensive financial data including historical prices, statements, and dividends.
-        :return: dict, analysis results including financial ratios and a narrative summary.
-        """
-        financial_statements = financial_data['financial_statements']
-        ratios = self.calculate_financial_ratios(financial_statements)
-        narrative = self.generate_financial_narrative(ratios,ticker)
+    def analyze_financials(self, financial_data, ticker):
+        ratios = self.calculate_financial_ratios(financial_data)
+        narrative = self.generate_financial_narrative(ratios, ticker)
         return {
             "ratios": ratios,
             "narrative": narrative
         }
 
-    def calculate_financial_ratios(self, financial_statements):
-        income_statement = financial_statements['income_statement']
-        balance_sheet = financial_statements['balance_sheet']
-        cash_flow = financial_statements['cash_flow']
+    def calculate_financial_ratios(self, financial_data):
+        ratios = {}
+        
+        # Financial Statements
+        income_statement = self.convert_to_df(financial_data.get('financial_statements', {}).get('income_statement'))
+        balance_sheet = self.convert_to_df(financial_data.get('financial_statements', {}).get('balance_sheet'))
+        cash_flow = self.convert_to_df(financial_data.get('financial_statements', {}).get('cash_flow'))
 
-        # Access metrics directly by row label
-        print("Income Statement:\n", income_statement.loc['Net Income'])
-        print("Balance Sheet for Stockholders Equity:\n", balance_sheet.loc['Stockholders Equity'])
-        def get_latest_value(series):
-        # This function retrieves the latest non-NaN value or returns 0 if all are NaN
-            return series.dropna().iloc[-1] if not series.dropna().empty else 0
+        # Market Data
+        market_data = financial_data.get('market_data', {})
+        
+        # Company Info
+        company_info = financial_data.get('company_info', {})
+        
+        # Performance Metrics
+        performance_metrics = financial_data.get('performance_metrics', {})
+        
+        # Valuation Measures
+        valuation_measures = financial_data.get('valuation_measures', {})
 
-        net_income = get_latest_value(income_statement.loc['Net Income Continuous Operations'])
-        total_equity = get_latest_value(balance_sheet.loc['Stockholders Equity'])
-        total_current_assets = get_latest_value(balance_sheet.loc['Current Assets'])
-        total_current_liabilities = get_latest_value(balance_sheet.loc['Current Liabilities'])
-        total_liabilities = get_latest_value(balance_sheet.loc['Total Liabilities Net Minority Interest'])
-        total_assets = get_latest_value(balance_sheet.loc['Total Assets'])
-        operating_income = get_latest_value(income_statement.loc['Operating Income'])
-        total_revenue = get_latest_value(income_statement.loc['Total Revenue'])
+        def safe_divide(a, b):
+            if pd.isna(a) or pd.isna(b) or b == 0:
+                return np.nan
+            return a / b
 
+        def get_latest_value(df, row_name):
+            if df is None or df.empty:
+                return np.nan
+            
+            if isinstance(df, pd.DataFrame):
+                if row_name in df.index:
+                    series = df.loc[row_name]
+                    return series.dropna().iloc[-1] if not series.empty else np.nan
+            elif isinstance(df, dict):
+                if 'data' in df and row_name in df['data']:
+                    values = [v for v in df['data'][row_name].values() if v is not None]
+                    return values[-1] if values else np.nan
+            return np.nan
 
-        # Calculate financial ratios
-        roe = net_income / total_equity
-        eps = net_income / income_statement.loc['Diluted Average Shares'].iloc[-1]
-        current_ratio = total_current_assets / total_current_liabilities 
-        debt_to_equity_ratio = total_liabilities / total_equity 
-        operating_margin = operating_income / total_revenue 
-        roa = net_income / total_assets 
+        # Profitability Ratios
+        ratios['ROE'] = performance_metrics.get('return_on_equity')
+        ratios['ROA'] = performance_metrics.get('return_on_assets')
+        ratios['Profit Margin'] = performance_metrics.get('profit_margins')
+        
+        # Liquidity Ratios
+        current_assets = get_latest_value(balance_sheet, 'Total Current Assets')
+        current_liabilities = get_latest_value(balance_sheet, 'Total Current Liabilities')
+        ratios['Current Ratio'] = safe_divide(current_assets, current_liabilities)
+        
+        # Solvency Ratios
+        total_liabilities = get_latest_value(balance_sheet, 'Total Liabilities')
+        total_equity = get_latest_value(balance_sheet, "Total Stockholders' Equity")
+        ratios['Debt to Equity'] = safe_divide(total_liabilities, total_equity)
+        
+        # Efficiency Ratios
+        total_revenue = get_latest_value(income_statement, 'Total Revenue')
+        total_assets = get_latest_value(balance_sheet, 'Total Assets')
+        ratios['Asset Turnover'] = safe_divide(total_revenue, total_assets)
+        
+        # Market Ratios
+        ratios['P/E Ratio'] = valuation_measures.get('price_to_book')
+        ratios['Dividend Yield'] = market_data.get('dividend_yield')
+        
+        # Growth Rates
+        if income_statement is not None and not income_statement.empty:
+            try:
+                revenue_series = self.get_series_from_df(income_statement, 'Total Revenue')
+                net_income_series = self.get_series_from_df(income_statement, 'Net Income')
+                
+                if revenue_series is not None:
+                    ratios['Revenue Growth Rate'] = revenue_series.pct_change().mean()
+                if net_income_series is not None:
+                    ratios['Net Income Growth Rate'] = net_income_series.pct_change().mean()
+            except Exception as e:
+                print(f"Error calculating growth rates: {e}")
 
-        ratios = {
-            "ROE": roe,
-            "EPS": eps,
-            "Current Ratio": current_ratio,
-            "Debt to Equity Ratio": debt_to_equity_ratio,
-            "Operating Margin": operating_margin,
-            "ROA": roa
-        }
+        # Cash Flow Metrics
+        if cash_flow is not None and not cash_flow.empty:
+            operating_cash_flow = get_latest_value(cash_flow, 'Operating Cash Flow')
+            capital_expenditures = get_latest_value(cash_flow, 'Capital Expenditure')
+            if not pd.isna(operating_cash_flow) and not pd.isna(capital_expenditures):
+                ratios['Free Cash Flow'] = operating_cash_flow - capital_expenditures
+
+        # Remove any NaN values
+        ratios = {k: v for k, v in ratios.items() if not pd.isna(v)}
+
         return ratios
 
-    def generate_financial_narrative(self, financial_ratios,company_name):
-        """
-        Generates a narrative summary of the financial health using OpenAI's GPT model based on calculated financial ratios.
-        """
+    def convert_to_df(self, data):
+        """Convert dictionary data to DataFrame if necessary."""
+        if data is None:
+            return pd.DataFrame()
+        
+        if isinstance(data, pd.DataFrame):
+            return data
+            
+        if isinstance(data, dict):
+            if 'data' in data and 'columns' in data and 'index' in data:
+                df_data = pd.DataFrame(data['data'])
+                df_data.index = data['index']
+                return df_data
+            
+        return pd.DataFrame()
+
+    def get_series_from_df(self, df, row_name):
+        """Safely extract a series from DataFrame for calculation."""
+        if isinstance(df, pd.DataFrame) and row_name in df.index:
+            return df.loc[row_name]
+        return None
+
+    def generate_financial_narrative(self, financial_ratios, company_name):
         prompt = f"Financial Analysis for {company_name}\n\n"
         prompt += "Based on the current financial data, here is an in-depth analysis of the company's financial performance:\n\n"
-        prompt += "\n".join([
-            f"- Return on Equity (ROE): {financial_ratios['ROE']:.2%} indicates how effectively the company uses investments to generate earnings growth.",
-            f"- Earnings Per Share (EPS): ${financial_ratios['EPS']:.2f} shows the portion of a company's profit allocated to each outstanding share of common stock, highlighting profitability on a per-share basis.",
-            f"- Current Ratio: {financial_ratios['Current Ratio']:.2f}, which measures the company's ability to pay off its short-term liabilities with its short-term assets. A ratio above 1 suggests good short-term financial health.",
-            f"- Debt to Equity Ratio: {financial_ratios['Debt to Equity Ratio']:.2f} shows the proportion of equity and debt the company uses to finance its assets, a lower ratio suggests less risk.",
-            f"- Operating Margin: {financial_ratios['Operating Margin']:.2%} demonstrates the percentage of revenue left after paying for variable production expenses, indicating the efficiency of the management.",
-            f"- Return on Assets (ROA): {financial_ratios['ROA']:.2%} highlights how profitable a company is relative to its total assets, indicating how efficient management is at using its assets to generate earnings."
-        ])
+        
+        for ratio, value in financial_ratios.items():
+            if isinstance(value, float):
+                prompt += f"- {ratio}: {value:.2f}\n"
+            else:
+                prompt += f"- {ratio}: {value}\n"
 
         prompt += "\n\nPlease analyze these metrics to provide insights into the company's financial stability, profitability, operational efficiency, and potential financial risks or opportunities."
         
