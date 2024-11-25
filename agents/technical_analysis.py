@@ -49,7 +49,8 @@ class TechnicalAnalysisAgent:
                 "Trend Indicators": self.calculate_trend_indicators(df),
                 "Volatility Indicators": self.calculate_volatility_indicators(df),
                 "Volume Indicators": self.calculate_volume_indicators(df),
-                "Support and Resistance": self.find_support_resistance(df)
+                "Support and Resistance": self.find_support_resistance(df),
+                "Additional Indicators": self.calculate_additional_indicators(df)
             }
 
             # Convert numpy arrays and other non-serializable types to lists
@@ -142,10 +143,10 @@ class TechnicalAnalysisAgent:
     # [Previous methods for calculate_sma, calculate_ema, calculate_rsi, etc.]
     
     def calculate_sma(self, prices, window):
-        return prices['Close'].rolling(window=window).mean().dropna().tail(10).tolist()
+        return prices['Close'].rolling(window=window).mean().dropna().tolist()
 
     def calculate_ema(self, prices, window):
-        return prices['Close'].ewm(span=window, adjust=False).mean().dropna().tail(10).tolist()
+        return prices['Close'].ewm(span=window, adjust=False).mean().dropna().tolist()
 
     def calculate_rsi(self, prices, window=14):
         delta = prices['Close'].diff()
@@ -153,21 +154,21 @@ class TechnicalAnalysisAgent:
         loss = (-delta.where(delta < 0, 0)).rolling(window=window).mean()
         rs = gain / loss
         rsi = 100 - (100 / (1 + rs))
-        return rsi.dropna().tail(10).tolist()
+        return rsi.dropna().tolist()
 
     def calculate_stochastic_oscillator(self, prices, window=14):
         low_min = prices['Low'].rolling(window=window).min()
         high_max = prices['High'].rolling(window=window).max()
         k = 100 * (prices['Close'] - low_min) / (high_max - low_min)
         d = k.rolling(window=3).mean()
-        return k.dropna().tail(10).tolist(), d.dropna().tail(10).tolist()
+        return k.dropna().tolist(), d.dropna().tolist()
 
     def calculate_macd(self, prices, slow=26, fast=12, signal=9):
         ema_fast = prices['Close'].ewm(span=fast, adjust=False).mean()
         ema_slow = prices['Close'].ewm(span=slow, adjust=False).mean()
         macd = ema_fast - ema_slow
         signal_line = macd.ewm(span=signal, adjust=False).mean()
-        return macd.dropna().tail(10).tolist(), signal_line.dropna().tail(10).tolist()
+        return macd.dropna().tolist(), signal_line.dropna().tolist()
 
     def calculate_adx(self, prices, window=14):
         tr1 = abs(prices['High'] - prices['Low'])
@@ -188,7 +189,7 @@ class TechnicalAnalysisAgent:
         dx = 100 * abs(plus_di - minus_di) / (plus_di + minus_di)
         adx = dx.rolling(window=window).mean()
         
-        return adx.dropna().tail(10).tolist()
+        return adx.dropna().tolist()
 
     def calculate_parabolic_sar(self, prices, step=0.02, max_step=0.2):
         high, low = prices['High'], prices['Low']
@@ -227,13 +228,13 @@ class TechnicalAnalysisAgent:
                     ep[i] = high[i]
                     af[i] = step
             
-        return sar.dropna().tail(10).tolist()
+        return sar.dropna().tolist()
 
     def calculate_bollinger_bands(self, prices, window=20, num_std_dev=2):
         sma = prices['Close'].rolling(window=window).mean()
         rstd = prices['Close'].rolling(window=window).std()
-        upper_band = (sma + rstd * num_std_dev).dropna().tail(10).tolist()
-        lower_band = (sma - rstd * num_std_dev).dropna().tail(10).tolist()
+        upper_band = (sma + rstd * num_std_dev).dropna().tolist()
+        lower_band = (sma - rstd * num_std_dev).dropna().tolist()
         return upper_band, lower_band
 
     def calculate_atr(self, prices, window=14):
@@ -243,21 +244,53 @@ class TechnicalAnalysisAgent:
         ranges = pd.concat([high_low, high_close, low_close], axis=1)
         true_range = np.max(ranges, axis=1)
         atr = true_range.rolling(window=window).mean()
-        return atr.dropna().tail(10).tolist()
+        return atr.dropna().tolist()
 
     def calculate_obv(self, prices):
         obv = (np.sign(prices['Close'].diff()) * prices['Volume']).fillna(0).cumsum()
-        return obv.dropna().tail(10).tolist()
+        return obv.dropna().tolist()
 
     def calculate_cmf(self, prices, window=20):
         mfm = ((prices['Close'] - prices['Low']) - (prices['High'] - prices['Close'])) / (prices['High'] - prices['Low'])
         mfv = mfm * prices['Volume']
         cmf = mfv.rolling(window=window).sum() / prices['Volume'].rolling(window=window).sum()
-        return cmf.dropna().tail(10).tolist()
+        return cmf.dropna().tolist()
 
     def find_support_resistance(self, prices, window=20):
         local_max = argrelextrema(prices['High'].values, np.greater_equal, order=window)[0]
         local_min = argrelextrema(prices['Low'].values, np.less_equal, order=window)[0]
-        resistance = prices['High'].iloc[local_max].tail(5).tolist()
-        support = prices['Low'].iloc[local_min].tail(5).tolist()
+        resistance = prices['High'].iloc[local_max].tolist()
+        support = prices['Low'].iloc[local_min].tolist()
         return {"support": support, "resistance": resistance}
+    
+    def calculate_additional_indicators(self, prices):
+        return {
+            "CCI": self.calculate_cci(prices),
+            "ROC": self.calculate_roc(prices),
+            "PVT": self.calculate_pvt(prices),
+            "ADL": self.calculate_adl(prices)
+        }
+
+    def calculate_cci(self, prices, window=20):
+        """ Commodity Channel Index (CCI) calculation """
+        tp = (prices['High'] + prices['Low'] + prices['Close']) / 3
+        sma = tp.rolling(window).mean()
+        mean_deviation = tp.rolling(window).apply(lambda x: np.mean(np.abs(x - x.mean())))
+        cci = (tp - sma) / (0.015 * mean_deviation)
+        return cci.dropna().tolist()
+
+    def calculate_roc(self, prices, window=14):
+        """ Rate of Change (ROC) calculation """
+        roc = prices['Close'].diff(window) / prices['Close'].shift(window) * 100
+        return roc.dropna().tolist()
+
+    def calculate_pvt(self, prices):
+        """ Price Volume Trend (PVT) calculation """
+        pvt = (prices['Volume'] * ((prices['Close'] - prices['Close'].shift(1)) / prices['Close'].shift(1))).cumsum()
+        return pvt.dropna().tolist()
+
+    def calculate_adl(self, prices):
+        """ Accumulation/Distribution Line (ADL) calculation """
+        clv = ((prices['Close'] - prices['Low']) - (prices['High'] - prices['Close'])) / (prices['High'] - prices['Low'])
+        adl = (clv * prices['Volume']).cumsum()
+        return adl.dropna().tolist()

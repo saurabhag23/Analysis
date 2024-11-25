@@ -58,12 +58,14 @@ class FundamentalAnalysisAgent:
         ratios['ROE'] = performance_metrics.get('return_on_equity')
         ratios['ROA'] = performance_metrics.get('return_on_assets')
         ratios['Profit Margin'] = performance_metrics.get('profit_margins')
-        
+        operating_income = get_latest_value(income_statement, 'Operating Income')
+        total_revenue = get_latest_value(income_statement, 'Total Revenue')
         # Liquidity Ratios
         current_assets = get_latest_value(balance_sheet, 'Total Current Assets')
         current_liabilities = get_latest_value(balance_sheet, 'Total Current Liabilities')
         ratios['Current Ratio'] = safe_divide(current_assets, current_liabilities)
-        
+        ratios['Operating Margin'] = safe_divide(operating_income, total_revenue)
+        ratios['Quick Ratio'] = safe_divide(current_assets - get_latest_value(balance_sheet, 'Inventory'), current_liabilities)
         # Solvency Ratios
         total_liabilities = get_latest_value(balance_sheet, 'Total Liabilities')
         total_equity = get_latest_value(balance_sheet, "Total Stockholders' Equity")
@@ -77,6 +79,7 @@ class FundamentalAnalysisAgent:
         # Market Ratios
         ratios['P/E Ratio'] = valuation_measures.get('price_to_book')
         ratios['Dividend Yield'] = market_data.get('dividend_yield')
+        ratios['P/B Ratio'] = safe_divide(market_data.get('market_cap'), total_equity)
         
         # Growth Rates
         if income_statement is not None and not income_statement.empty:
@@ -95,8 +98,8 @@ class FundamentalAnalysisAgent:
         if cash_flow is not None and not cash_flow.empty:
             operating_cash_flow = get_latest_value(cash_flow, 'Operating Cash Flow')
             capital_expenditures = get_latest_value(cash_flow, 'Capital Expenditure')
-            if not pd.isna(operating_cash_flow) and not pd.isna(capital_expenditures):
-                ratios['Free Cash Flow'] = operating_cash_flow - capital_expenditures
+            #if not pd.isna(operating_cash_flow) and not pd.isna(capital_expenditures):
+             #   ratios['Free Cash Flow'] = operating_cash_flow - capital_expenditures
 
         # Remove any NaN values
         ratios = {k: v for k, v in ratios.items() if not pd.isna(v)}
