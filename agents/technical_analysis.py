@@ -139,8 +139,7 @@ class TechnicalAnalysisAgent:
             print(f"Error calculating volume indicators: {str(e)}")
             return {}
 
-    # Rest of the calculation methods remain the same as in your original code
-    # [Previous methods for calculate_sma, calculate_ema, calculate_rsi, etc.]
+   
     
     def calculate_sma(self, prices, window):
         return prices['Close'].rolling(window=window).mean().dropna().tolist()

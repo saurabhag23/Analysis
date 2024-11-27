@@ -16,7 +16,7 @@ class CoordinationAgent:
         """
         Coordinates the fetching of data and the analysis process for a given ticker.
         :param ticker: str, the stock ticker symbol.
-        :param analysis_type: str, type of analysis ('fundamental', 'technical', 'both').
+        :param analysis_type: str, type of analysis ('fundamental', 'technical', 'overview').
         :return: dict, the results of the analysis including data from various agents.
         """
         data_agent = DataRetrievalAgent(ticker,SEC_API_KEY)

@@ -7,7 +7,7 @@ app = FastAPI(title="Investment Analyst AI")
 def read_root():
     return "Welcome to the Investment Analyst AI System!"
 
-# Include the API router
+
 app.include_router(api_router)
 
 if __name__ == "__main__":
