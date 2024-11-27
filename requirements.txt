@@ -1,6 +1,13 @@
 fastapi
 uvicorn
 httpx
+pandas
+numpy
+plotly
+streamlit
+requests
+redis
+openai
 yfinance
 pandas
 python-dotenv
