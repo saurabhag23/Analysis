@@ -157,10 +157,6 @@ The system employs a modular, multi-agent architecture designed for scalability 
 6. **User Experience**: Provides an intuitive, interactive dashboard for easy analysis and comparison.
 
 ## 📜 License
-[Add your license information here]
-
-## 🤝 Contributing
-[Add contribution guidelines here]
 
 ---
 
